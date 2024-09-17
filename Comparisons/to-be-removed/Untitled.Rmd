@@ -1,0 +1,666 @@
+---
+title: "Hmeta_public"
+output: html_document
+date: "2024-07-31"
+---
+
+
+```{r}
+library(tidyverse)
+library(magrittr)
+library(reshape2)
+library(coda)
+library(lattice)
+library(broom)
+library(ggpubr)
+library(ggmcmc)
+library(gghalves)
+library(abind)
+library(BayesFactor)
+library(R.matlab)
+library("readxl")
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(rjags)
+library(readr)
+library(tidyr)
+library(cowplot)
+source("/Users/sershadmanesh/Nextcloud/Drug_study/HMeta-d-master/R/trials2counts.R")
+#source("/Users/sershadmanesh/Nextcloud/Drug_study/HMeta-d-master/R/fit_metad_indiv.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/HMeta-d-master/R/fit_metad_group.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/HMeta-d-master/R/fit_metad_groupcorr.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/HMeta-d-master/R/fit_metad_groupcorr_SARA.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/plot/meta_test_plot.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/plot/compare_mbmf_reg_plot.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/plot/compare_mbmf_reg_twocol_plot.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/plot/compare_hdi_deltamratio_plot.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/accessory/permute_meta_drugs_beforefit_accessor.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/accessory/conf_interval_normdist.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/plot/compare_2fake2drug_dist_plot.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/plot/compare_mbmf_reg_gr_plot.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/plot/compare_fakedist_plot.R")
+```
+
+```{r}
+thsara =theme(axis.title.y = element_text(hjust = 0.5, size = 16),
+          axis.title.x = element_text(size = 16),
+          axis.text = element_text(size = 14),
+            axis.line = element_line(colour = "black"),
+            panel.border = element_blank(),
+            panel.grid = element_blank(),
+            panel.background = element_blank(),
+            legend.position = "right",
+            legend.background=element_blank()
+      )
+```
+
+```{r}
+ndrug = 3
+nt_bl =25
+nsub = 30
+nblk = 8
+nRatings = 6
+nrat= 2*6 # it was 6 in past
+drug = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/drug.rds")
+adressdrug = "/Users/sershadmanesh/Nextcloud/Drug_study/data/main_data/complete/"
+completesubs = c(102:112, 114:117, 119:133)  # 4 last added
+nrg_s1 = list()
+nrg_s2 = list()
+for (dru in 1:ndrug){
+  ns1=matrix(0,nrow =nrat,ncol = nsub )
+  ns2=matrix(0,nrow =nrat,ncol = nsub )
+  for(sub in 1:nsub){
+    subid = completesubs[sub]
+    drugpos = drug[sub,dru]
+    data = readMat(paste0(adressdrug,subid,"/","perceptData",subid,"-",drugpos,".mat"))
+    response = c()
+    rating = c()
+    stimID = c()
+    for (blk in 1:nblk){
+      adress_subj = data$DATA[,,blk]$results[,,1]
+      response = c(response, adress_subj$response)
+      rating = c(rating, adress_subj$responseConf)
+      rating[rating==0]= mean(rating[rating!=0])
+      rating  = floor((rating-50)*((nRatings-1)/50) + 1) # was 6 in past
+      #rating[rating==11]= 6 # if subject reported 100 consider it as 6, we have 6 nrating
+      stimID_subj = rep(0,nt_bl)
+      stimID_subj[adress_subj$correct==1]= adress_subj$response[adress_subj$correct==1] #the choice in correct trials
+      wrongres = adress_subj$response[adress_subj$correct==0] #the choice in incorrect trials
+      stimID_subj[adress_subj$correct==0]= (wrongres%%2)+1 # what was the correct stimulus ID,subject was wrong, so the inverse of his response
+      stimID = c(stimID,stimID_subj)
+
+    } #blk
+    response = response-1
+    stimID  =  stimID -1
+   
+    a = trials2counts(stimID, response, rating,nRatings, padAmount = 0,padCells=0)
+    nRp_S1 <- a[[1]]
+    nRp_S2 <- a[[2]]
+    ns1[,sub]= nRp_S1
+    ns2[,sub]= nRp_S2
+    
+  } #sub
+  nrg_s1[[dru]]= ns1
+  nrg_s2[[dru]]= ns2
+  
+} #dru
+
+
+#saveRDS(nrg_s1, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/nrating1_response_percepttask_hmeta.rds")
+#saveRDS(nrg_s2, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/nrating2_response_percepttask_hmeta.rds")
+#saveRDS(nrg_s1, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/nrating1_response_percepttask_hmeta_3rating.rds")
+#saveRDS(nrg_s2, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/nrating2_response_percepttask_hmeta_3rating.rds")
+#saveRDS(nrg_s1, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/nrating1_response_percepttask_hmeta_10rating.rds")
+#saveRDS(nrg_s2, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/nrating2_response_percepttask_hmeta_10rating.rds")
+
+nR_S1 = nrg_s1
+nR_S2 = nrg_s2
+output <- fit_metad_groupcorr(nR_S1 = nR_S1, nR_S2 = nR_S2) # I added "_SARA"
+
+#saveRDS(output, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_10junedit_second.rds")
+# low M-ratio? similar Rhats? correlation with classic?
+#Fit just for PLacebo: correlation?
+#
+
+#saveRDS(output, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_10junedit.rds")
+#saveRDS(output, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_secondtime.rds")
+# Rhat was worse, Plac significantly higher than both, M-ratio lower than 1.3 , just one sub 2.5
+
+#saveRDS(output, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_10000sam_4chain_loglik.rds")
+#saveRDS(output, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_100000iter_limitedprior.rds")
+#saveRDS(output, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_100000iter_thirdrun.rds")
+### next step, decrease the range of M-ratio, adding loglik perhaps makes probelm for covariance mtrix (eigen values) because there would be more number of variables, although in previous fitting with wrong loglik formula the results was strong and the other convergence criteria was accepted but i could see Gelman-Rubins.
+
+#1- number of iterations: the Rhat was not good, the plac was significantly higher than both, M-ratio lower than 1.5
+#2- decrease the range of values of M-ratio, plus 1: the Rhat was not good!, the plac was significantly higher than both, M-ratio lower than 1.5,, just one 2.5
+
+#3- add correct loglik, in (1) i had not the problem of Rhat, so it must be due to higher variables 
+# whether ypu take better Rhat? whether you have same results? 
+
+#saveRDS(output, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_10000sam_4chain.rds")
+#saveRDS(output, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_4000sam_4chain.rds")
+#saveRDS(output, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_4000sam_4chain.rds")
+#output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group.rds")
+#output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group.rds")
+#output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_10ratings_1000sample.rds")
+```
+
+
+
+```{r}
+#output = readRDS( "/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group.rds")
+mcmcsample <- ggs(output)
+
+nsub=30
+ndrug = 3
+loglik = array(0, c(nsub,ndrug)) #prop and Dop minus Place
+for (sub in 1:nsub){
+    loglik[sub,1] = mean(mcmcsample$value[which(mcmcsample$Parameter==paste0("log_likelihood[",sub,",1]"))]) #prop
+    loglik[sub,2] = mean(mcmcsample$value[which(mcmcsample$Parameter==paste0("log_likelihood[",sub,",2]"))]) #dop
+    loglik[sub,3] = mean(mcmcsample$value[which(mcmcsample$Parameter==paste0("log_likelihood[",sub,",3]"))]) #plac
+}
+ #saveRDS(meta_indiv, file #="/Users/sershadmanesh/Nextcloud/Drug_study/data/mean_M.Ratio_dependentgroups_indiv.rds")
+#saveRDS(loglik, file= "/Users/sershadmanesh/Nextcloud/Drug_study/data/loglik_dependent_3group.rds")
+t.test(loglik[,2],loglik[,3])
+
+p=compare_mbmf_reg_plot(cbind( loglik[,1],loglik[,3],loglik[,2]))
+p
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/loglik_dependentgroups_drugs.png",p,width = 8,height = 8,units = "cm")
+```
+
+```{r}
+output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group.rds")
+
+Value <- summary(output)
+stat <- data.frame(mean = Value$statistics[,"Mean"])
+  stat %<>% rownames_to_column(var = "name")
+# Rhat 
+Value <- gelman.diag(output, confidence = 0.95)
+Rhat <- data.frame(conv = Value$psrf)
+#saveRDS(Rhat, file = "/Users/sershadmanesh/Nextcloud/Drug_study/data/rhat_hmeta_depndent_3group_4000sam_4chain_nolikelihood.rds")
+#saveRDS(Rhat, file = "/Users/sershadmanesh/Nextcloud/Drug_study/data/rhat_hmeta_depndent_3group_10000sam_4chain.rds")
+Rhat = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/rhat_hmeta_depndent_3group_10000sam_4chain.rds")
+mean(Rhat[61:90 ,1])
+# HDI 
+HDI <- data.frame(HPDinterval(output, prob = 0.95))
+HDI %<>%
+  rownames_to_column(var = "name")
+
+HDI[94:96,3]- HDI[94:96,2]
+
+# All values in the same dataframe
+Fit <- stat %>%
+  cbind(lower = HDI$lower,
+        upper = HDI$upper,
+        Rhat = Rhat[,1])
+ mcmcsample <- ggs(output)
+
+#####plot Rhat for all params
+prhat<-Fit %>%
+  ggplot(aes(Rhat)) +
+  geom_histogram(binwidth = 0.03, fill = "gray", colour = "gray", alpha = 0.5) +
+  geom_vline(xintercept = mean(Fit$Rhat),linetype="dashed",linewidth = 0.5)+
+  ylab("Sample count") +
+  xlab(" Rhat")+
+  theme_bw( ) + thsara
+
+#ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/Rhat_allparam.png",prhat,width = #3,height = 3)
+#saveRDS(HDI, file = "/Users/sershadmanesh/Nextcloud/Drug_study/data/HDI_hmeta_depndent_3group_10000sam_4chain.rds")
+length(which(Fit$Rhat<1.1))/length(Fit$Rhat)
+```
+
+
+```{r}
+###plot M.Ratio for placebo
+output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_3ratings.rds")
+mcmcsample <- ggs(output)
+mu3 = exp(mcmcsample$value[which(mcmcsample$Parameter=="mu_logMratio[3]")])
+randcoef = c(mu3)
+nsam = length(mu3)
+df = data.frame(randcoef)
+
+p =ggplot(df,aes(x = randcoef))+
+  geom_density(alpha = 0.5, fill = "#00BFC4")+xlab("Meta-cognitive ability")+ylab("Density")+
+    labs(title = "")+ xlim(c(0,2))+ylim(c(0,5))+
+    theme_bw( ) + thsara
+ #plot(x, y, col = c("#F8766D", "#00BFC4", "#619CFF"))
+p
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/mu_M.Ratio_dependentfroups_drugs_Placebo.png",p,width = 4,height = 4)
+```
+
+```{r}
+###plot M.Ratio for all three groups
+#output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group.rds")
+output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_10000sam_4chain_.rds")
+#output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_10ratings.rds")
+mcmcsample <- ggs(output)
+mu1 = exp(mcmcsample$value[which(mcmcsample$Parameter=="mu_logMratio[1]")])
+mu2 = exp(mcmcsample$value[which(mcmcsample$Parameter=="mu_logMratio[2]")])
+mu3 = exp(mcmcsample$value[which(mcmcsample$Parameter=="mu_logMratio[3]")])
+effect= cbind(mu1,mu3,mu2)
+compare_mbmf_reg_gr_plot(effect)
+randcoef = c(mu1,mu3,mu2)
+nsam = length(mu1)
+drugname = c(rep("Prop",nsam),rep("Plac",nsam),rep("Dop",nsam))
+df = data.frame(randcoef ,drugname)
+df$drugname = factor(df$drugname,levels = c("Prop","Plac","Dop"))
+
+p =ggplot(df,aes(x = randcoef , fill  = drugname))+
+  geom_density(alpha = 0.5)+scale_fill_manual(values=c("#982F28", "#05C9CE","#2352A0"))+xlab("Meta-cognitive ability")+ylab("Density")+
+    labs(title = "")+ xlim(c(0,2))+
+    theme_bw( ) + thsara
+# colorblind "#982F28", "#05C9CE","#2352A0"
+ #plot(x, y, col = c("#F8766D", "#00BFC4", "#619CFF"))
+p
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/mu_M.Ratio_dependentfroups_drugs.png",p,width = 4.5,height = 4)
+```
+# group posteriors, real
+
+```{r}
+###plot difference of M.Ratio from Placebo
+output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_10ratings_1000sample.rds")
+output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group.rds")
+mcmcsample <- ggs(output)
+mu1 = exp(mcmcsample$value[which(mcmcsample$Parameter=="mu_logMratio[1]")]) # Prop
+mu2 = exp(mcmcsample$value[which(mcmcsample$Parameter=="mu_logMratio[2]")]) # Dop
+mu3 = exp(mcmcsample$value[which(mcmcsample$Parameter=="mu_logMratio[3]")]) # Plac
+m1 = ecdf(mu1)
+plot(m1)
+as.vector()
+wilcox.test(mu3, mu1)
+ks.test(mu3[1:10], mu1[1:10])
+kruskal.test(mu3, mu1)
+
+wilcox.test(mu2, mu3)
+t.test(mu1,mu3)
+t.test(mu2,mu3)
+randcoef = c(mu1-mu3,mu2-mu3)
+nsam = length(mu1)
+drugname = c(rep("Prpl",nsam),rep("Dopl",nsam))
+df = data.frame(randcoef ,drugname)
+df$drugname = factor(df$drugname,levels = c("Prpl","Dopl"))
+
+p =ggplot(df,aes(x = randcoef , fill  = drugname))+
+  geom_density(alpha = 0.5)+scale_fill_manual(values=c("red", "green"))+xlab("Difference with Placebo")+ylab("Density")+
+    labs(title = "")+ xlim(c(-1.5,1.5))+
+    theme_bw( ) + thsara
+p
+#ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/mu_deltaM.Ratio_dependentfroups_drugs#.png",p,width = 4,height = 3)
+
+length(which(mu1-mu3<0))/length(mu1-mu3)
+length(which(mu2-mu3>0))/length(mu2-mu3)
+```
+
+```{r}
+
+output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group.rds")
+mcmcsample <- ggs(output)
+ro1 = mcmcsample$value[which(mcmcsample$Parameter=="rho[1]")] # prop and Dop
+ro2 = mcmcsample$value[which(mcmcsample$Parameter=="rho[2]")] # prop and plac
+ro3 = mcmcsample$value[which(mcmcsample$Parameter=="rho[3]")] # Dop and plac
+sd(ro1)/ sqrt(length(ro3))
+randcoef = c(ro2,ro3)
+nsam = length(ro2)
+drugname = c(rep("Prpl",nsam),rep("Dopl",nsam))
+df = data.frame(randcoef ,drugname)
+df$drugname = factor(df$drugname,levels = c("Prpl","Dopl"))
+
+p =ggplot(df,aes(x = randcoef , fill  = drugname))+
+  geom_density(alpha = 0.5)+scale_fill_manual(values=c("red", "green"))+xlab("Correlation with Placebo")+ylab("Density")+
+    labs(title = "")+ xlim(c(-1.5,1.5))+
+    theme_bw( ) +thsara
+
+p
+#ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/corelation_withPlacebo_dependentfroup#.png",p,width = 4,height = 3)
+
+length(which(mu1-mu3<0))/length(mu1-mu3)
+length(which(mu2-mu3>0))/length(mu2-mu3)
+
+```
+
+# Permutation test before fitting to Hmeta
+```{r}
+#ratio_dif_indiv= readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/mu_deltaM.Ratio_dependentgroups_indiv.rds")
+nrg_s1 = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/nrating1_response_percepttask_hmeta.rds")
+nrg_s2 = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/nrating2_response_percepttask_hmeta.rds")
+niter = 1000
+nmethod = 1
+nsub=30
+ndrag =3 ### the saved data is with 2
+nsamp= 30000
+mratio_rand_ind= array(0,c(niter,ndrag,nsamp))
+#ratio_dif_ind = array(0, c(niter,nsub,ndrag,nmethod))
+for (iter in 1:niter){
+    bothS = permute_meta_drugs_beforefit_accessor(nrg_s1,nrg_s2)
+    nR_S1 = bothS[[1]]
+    nR_S2 = bothS[[2]]
+    output <- fit_metad_groupcorr(nR_S1 = nR_S1, nR_S2 = nR_S2)
+    mcmcsample_ran <- ggs(output)
+    for (sub in 1:nsub){
+    mratio_rand_ind[iter,1,sub] = median(exp(mcmcsample_ran$value[which(mcmcsample_ran$Parameter==paste0("Mratio[",sub,",1]"))]))
+    mratio_rand_ind[iter,2,sub] = median(exp(mcmcsample_ran$value[which(mcmcsample_ran$Parameter==paste0("Mratio[",sub,",2]"))]))
+    mratio_rand_ind[iter,3,sub] = median(exp(mcmcsample_ran$value[which(mcmcsample_ran$Parameter==paste0("Mratio[",sub,",3]"))]))
+    }
+   # saveRDS(mratio_rand_ind, file ="/Users/sershadmanesh/Nextcloud/Drug_study/data/M.Ratio_dependentgroups_ind_random_beforefit_samples_1to1000.rds")
+
+   # saveRDS(mratio_rand, file ="/Users/sershadmanesh/Nextcloud/Drug_study/data/M.Ratio_dependentgroups_random_beforefit_samples.rds")
+
+     print(iter)
+}
+#mratio_rand1 =  readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/M.Ratio_dependentgroups_random_beforefit_samples.rds")
+#mratio_rand2 = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/M.Ratio_dependentgroups_random_beforefit_samples_100to1000.rds")#includes 364 samples
+
+#mratio_rand_final = abind(mratio_rand1[1:100,,],mratio_rand2[101:364,,], along = 1)
+#saveRDS(mratio_rand_final, file ="/Users/sershadmanesh/Nextcloud/Drug_study/data/M.Ratio_dependentgroups_random_beforefit_samples_364iterations.rds")
+
+
+```
+
+```{r}
+nsub=30
+m_ind_rand= readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/M.Ratio_dependentgroups_ind_random_beforefit_samples_1to1000.rds")
+niter_now =1000
+mindrand = m_ind_rand[1:niter_now,,1:nsub]
+mindrand_comp = rep(0,niter_now)
+comp=1
+
+for (iter in 1:niter_now){
+ 
+   tot_2opt = c(mindrand[iter,1,],mindrand[iter,3,])
+    drugname = c(rep("pr", nsub), rep("d", nsub))
+    meta = data.frame(tot_2opt,drugname = as.factor(drugname) )
+    kru = kruskal.test(tot_2opt~drugname , data = meta)
+    mindrand_comp[iter] = kru$statistic
+}
+hist(mindrand_comp)
+mind_emp = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/mean_M.Ratio_dependentgroups_indiv.rds")
+    tot_2opt = c(mind_emp[,1],mind_emp[,3])
+    drugname = c(rep("pr", nsub), rep("d", nsub))
+    meta = data.frame(tot_2opt,drugname = as.factor(drugname) )
+    kru = kruskal.test(tot_2opt~drugname , data = meta)
+    kru$statistic
+    
+   length(which(mindrand_comp<kru$statistic))/length(mindrand_comp)
+wilemp= mean(mind_emp[,1]- mind_emp[,3])
+wilemp
+```
+
+
+```{r}
+nit_now = 122
+#ind= readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/mu_deltaM.Ratio_dependentgroups_random_beforefit_indiv.rds")
+#gr= readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/mu_deltaM.Ratio_dependentgroups_random_beforefit_SECONDFIT.rds")
+
+randcoef = c(gr[1:nit_now,1])#, gr[1:nit_now,2,1])
+#nsam = length(randcoef)/2
+df = data.frame(randcoef)
+p = ggplot(df,aes(randcoef))+
+  geom_histogram(bins =500, position = "dodge", fill = "#F8766D")+
+  xlab("")+ylab("Frequency")+
+    labs(title = "")+# xlim(c(-2.5,2.5))+#ylim(c(0,50))+
+    theme_bw( ) +thsara
+
+p
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/mu_deltaM.Ratio_dependentgroups_random_beforefit__DIF_1000iter_Prop.png",p,width = 11,height = 10,units = "cm")
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/mu_deltaM.Ratio_dependentgroups_random_beforefit__DIF_1000iter_Dop.png",p,width = 11,height = 10,units = "cm")
+sort(randcoef)
+```
+
+
+# Permutation test before fitting to Hmeta, then comapre permuted results by Anova
+```{r}
+#mratio_rand =  readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/M.Ratio_dependentgroups_random_beforefit_samples.rds")# 100 iterations
+mratio_rand =  readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/M.Ratio_dependentgroups_random_beforefit_samples_364iterations.rds")# 364 iterations
+
+nsam=364
+niter= 364 # 100
+metarand = matrix(0,niter,2) # 2 is for fvalue and pvalue
+post = c(1:niter)
+for (iter in 1:niter){
+  drugname = sample(c(rep("pr",length(mratio_rand[1,1,1:nsam])), rep("d", length(mratio_rand[1,1,1:nsam])), rep("pl", length(mratio_rand[1,1,1:nsam]))))
+  allmeta = c(mratio_rand[iter,1,1:nsam],mratio_rand[iter,2,1:nsam],mratio_rand[iter,3,1:nsam])
+  meta = data.frame(allmeta,drugname = as.factor(drugname) )
+  resaov = aov(allmeta~drugname , data = meta)
+  metarand [iter,1] = summary(resaov)[[1]][[1,"F value"]]
+  metarand [iter,2] = summary(resaov)[[1]][[1,"Pr(>F)"]]
+  #wil = wilcox.test(mratio_rand[iter,1,],mratio_rand[iter,3,])
+  #tot_2opt = c(mratio_rand[iter,1,],mratio_rand[iter,3,])
+  #drugname = c(rep("pr",length(mratio_rand[1,1,])), rep("d", length(mratio_rand[1,1,])))
+  #meta = data.frame(tot_2opt,drugname = as.factor(drugname))
+  #ao = aov(tot_2opt~drugname , data = meta) 
+  #aofval = summary(ao)[[1]][[1,"F value"]]
+  #post[iter] = wil$statistic
+  post[iter] =  median(mratio_rand[iter,3,1:nsam])-median(mratio_rand[iter,1,1:nsam])
+  #ttes = t.test(mratio_rand[iter,1,],mratio_rand[iter,2,])
+   #if( median(mratio_rand[iter,3,])-median(mratio_rand[iter,1,])>0){
+   #           post[iter] = aofval
+   #} else { post[iter] = -aofval}
+}
+
+hist(post)
+
+ #Siter = 8
+ nsam=364
+#c(mratio_rand[iter,1,1:nsam],mratio_rand[iter,3,1:nsam])
+fake_dists = cbind(mratio_rand[iter,1,1:nsam],mratio_rand[iter,3,1:nsam])
+compare_fakedist_plot(fake_dists, nsam)
+
+
+real_dists = cbind(mu1[1:nsam],mu3[1:nsam])
+compare_fakedist_plot(real_dists, nsam)
+
+nsam=100
+wil = wilcox.test(mratio_rand[iter,1,1:nsam],mratio_rand[iter,3,1:nsam], alternative = "less")
+wil
+summary(wil)
+wil$statistic
+```
+
+```{r}
+### Anova to compare M.Ratio between drug conditions
+output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group.rds")
+mcmcsample <- ggs(output)
+mu1 = exp(mcmcsample$value[which(mcmcsample$Parameter=="mu_logMratio[1]")])
+mu2 = exp(mcmcsample$value[which(mcmcsample$Parameter=="mu_logMratio[2]")])
+mu3 = exp(mcmcsample$value[which(mcmcsample$Parameter=="mu_logMratio[3]")])
+
+bayse = ttestBF(x = mu2, y = mu3) # Bayes factor
+bayse
+
+
+ndrug=3
+nsam = length(mu1)
+tot_2opt = c(mu1[1:nsam],mu2[1:nsam],mu3[1:nsam])
+drugname = c(rep("p", length(mu1[1:nsam])), rep("d", length(mu2[1:nsam])), rep("pl", length(mu3[1:nsam])))
+meta = data.frame(tot_2opt,drugname = as.factor(drugname))
+res = aov(tot_2opt~drugname , data = meta)
+summary(res)
+metafval = summary(res)[[1]][[1,"F value"]]
+metapval = summary(res)[[1]][[1,"Pr(>F)"]]
+
+tot_2opt = c(mu1,mu3)
+drugname = c(rep("p", length(mu1)), rep("d", length(mu1)))
+meta = data.frame(tot_2opt,drugname = as.factor(drugname))
+res = aov(tot_2opt~drugname , data = meta)
+postfval = summary(res)[[1]][[1,"F value"]]
+postpval = summary(res)[[1]][[1,"Pr(>F)"]]
+
+#tot_2opt = c(mu2,mu3)
+#drugname = c(rep("p", length(mu1)), rep("pl", length(mu1)))
+#meta = data.frame(tot_2opt,drugname = as.factor(drugname))
+#krureal = kruskal.test(tot_2opt~drugname , data = meta) 
+st=0
+nsam= 30000
+niter=300
+#wilcox.test(mu1[1:nsam], mu3[1:nsam])
+#postreal = krureal$statistic
+#ttesreal = t.test(mu1, mu3)
+postreal = median(mu3[(1+st):(nsam+st)])-median(mu1[(1+st):(st+nsam)])#wilreal$statistic#
+
+length(which(post[1:niter]<postreal))/ length(post[1:niter])
+length(which(metarand[,1] < metafval))/ length(metarand[,1])
+length(which(metarand[,2] > metapval))/ length(metarand[,2])
+
+hist(metarand[,1])
+
+```
+
+```{r}
+### increase by Dopamine and decrease by Prop subject by subject.
+output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group.rds")
+output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group_4000sam_4chain_nolikelihood.rds")
+mcmcsample <- ggs(output)
+nsub=30
+ndrag = 3
+nmethod = 2
+ratio_dif_indiv = array(0, c(nsub,ndrag,nmethod)) #prop and Dop minus Place
+meta_indiv = array(0, c(nsub,ndrag)) 
+for (sub in 1:nsub){
+    mu1 = mcmcsample$value[which(mcmcsample$Parameter==paste0("Mratio[",sub,",1]"))]
+    mu2 = mcmcsample$value[which(mcmcsample$Parameter==paste0("Mratio[",sub,",2]"))]
+    mu3 = mcmcsample$value[which(mcmcsample$Parameter==paste0("Mratio[",sub,",3]"))]
+    
+   
+    meta_indiv[sub,1] = mean(mu1)
+    meta_indiv[sub,2] = mean(mu2)
+    meta_indiv[sub,3] = mean(mu3)
+    #ratio_dif_indiv[sub,1,1] = length(which(mu1-mu3<0))/length(mu1-mu3)
+    #ratio_dif_indiv[sub,2,1] = length(which(mu2-mu3>0))/length(mu2-mu3)
+    #ratio_dif_indiv[sub,3,1] = length(which(mu1-mu2>0))/length(mu1-mu2)
+    #ratio_dif_indiv[sub,1,2] = mean(mu1-mu3)
+    #ratio_dif_indiv[sub,2,2] = mean(mu2-mu3)
+    #ratio_dif_indiv[sub,3,2] = mean(mu1-mu2)
+}
+# saveRDS(ratio_dif_indiv, file ="/Users/sershadmanesh/Nextcloud/Drug_study/data/mu_deltaM.Ratio_dependentgroups_indiv.rds")
+
+kruskal.test(meta_indiv[,2],meta_indiv[,1] )
+p=compare_hdi_deltamratio_plot()
+p
+cor.test( ratio_dif_indiv[,1], ratio_dif_indiv[,2])
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/mu_deltaM.Ratio_dependentfroups_RATIO_drugs.png",p,width = 3,height = 3)
+
+p=compare_hdi_deltamratio_plot(real[,,2])
+p
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/mu_deltaM.Ratio_dependentfroups_DIF_drugs.png",p,width = 3,height = 3)
+
+
+length(which(mu1-mu3<0))/length(mu1-mu3)
+length(which(mu2-mu3<0))/length(mu2-mu3)
+
+real= readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/mu_deltaM.Ratio_dependentgroups_indiv.rds")
+mean(real[,2,2])
+```
+# COMpare real and fake drug conditions, individual posteriors, two methods of statistics (mean and Ratio)
+```{r}
+ind= readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/mu_deltaM.Ratio_dependentgroups_random_beforefit_indiv.rds")
+real= readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/mu_deltaM.Ratio_dependentgroups_indiv.rds")
+
+nsub= 30 
+perm = array(0, c(nsub,2,2))
+for (sub in 1:nsub){
+   perm[sub,1,1] = length(which(ind[1:nit_now,sub,1,1] < real[sub,1,1]))/nit_now # first drug, proportion method
+   perm[sub,2,1] = length(which(ind[1:nit_now,sub,2,1] < real[sub,2,1]))/nit_now # second drug, proportion method
+   perm[sub,1,2] = length(which(ind[1:nit_now,sub,1,2] < real[sub,1,2]))/nit_now # first drug, proportion method
+   perm[sub,2,2] = length(which(ind[1:nit_now,sub,2,2] < real[sub,2,2]))/nit_now # second drug, proportion method
+}
+
+length(which(perm[,1,1]>0.95))
+length(which(perm[,2,1]>0.95))
+
+
+
+############################# Plots #################
+P = compare_2fake2drug_dist_plot(cbind(real[,1,1],indmean[,1,1],indmean[,2,1],real[,2,1]))
+P
+
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/mu_deltaM.Ratio_dependentgroups_random_beforefit_fak&real_RATIO_500iter.png",P,width = 10,height = 10,units = "cm")
+
+P = compare_2fake2drug_dist_plot(cbind(real[,1,2],indmean[,1,2],indmean[,2,2],real[,2,2]))
+P
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/mu_deltaM.Ratio_dependentgroups_random_beforefit_fak&real_DIF_500iter.png",P,width = 10,height = 10,units = "cm")
+```
+
+```{r}
+### increase vy Dopamine and decrease by Prop subject by subject.
+output = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/hmeta_depndent_3group.rds")
+mcmcsample <- ggs(output)
+nsub=30
+ndrug = 3
+meta_indiv = array(0, c(nsub,ndrug)) #prop and Dop minus Place
+for (sub in 1:nsub){
+    meta_indiv[sub,1] = mean(mcmcsample$value[which(mcmcsample$Parameter==paste0("Mratio[",sub,",1]"))]) #prop
+    meta_indiv[sub,2] = mean(mcmcsample$value[which(mcmcsample$Parameter==paste0("Mratio[",sub,",2]"))]) #dop
+    meta_indiv[sub,3] = mean(mcmcsample$value[which(mcmcsample$Parameter==paste0("Mratio[",sub,",3]"))]) #plac
+}
+# saveRDS(meta_indiv, file ="/Users/sershadmanesh/Nextcloud/Drug_study/data/mean_M.Ratio_dependentgroups_indiv_withloglik.rds")
+
+saveRDS(meta_indiv, file ="/Users/sershadmanesh/Nextcloud/Drug_study/data/mean_M.Ratio_dependentgroups_indiv_10junedit_second.rds")
+
+#saveRDS(meta_indiv, file ="/Users/sershadmanesh/Nextcloud/Drug_study/data/mean_M.Ratio_dependentgroups_indiv_10junedit.rds")
+
+t.test(meta_indiv[,1],meta_indiv[,3])
+
+p=compare_mbmf_reg_plot(cbind( meta_indiv[,1],meta_indiv[,3],meta_indiv[,2]))
+p
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/mu_M.Ratio_dependentgroups_drugs_100iter.png",p,width = 8,height = 8,units = "cm")
+```
+
+```{r}
+
+p = compare_mbmf_reg_twocol_plot(cbind( meta_indiv[,1],meta_indiv[,3],meta_indiv[,2]))
+p
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/difplace_mu_M.Ratio_dependentgroups_drugs_100iter.png",p,width = 8,height = 8,units = "cm")
+
+```
+
+```{r}
+### Anova to compare individual posteriors from Hmeta, between drug conditions
+nsub = 30
+tot_2opt = c(meta_indiv[,1],meta_indiv[,3],meta_indiv[,2])
+drugname = c(rep("pr", nsub), rep("pl", nsub), rep("d", nsub))
+meta = data.frame(tot_2opt,drugname = as.factor(drugname) )
+aov(tot_2opt~drugname , data = meta) %>% summary() 
+wilcox.test(tot_2opt~drugname , data = meta)
+wilcox.test(meta_indiv[,3],meta_indiv[,2])
+```
+
+
+
+
+```{r}
+# plot just for placebo, m.ratio from Hmeta, individual posteriors
+meta_indiv = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/mean_M.Ratio_dependentgroups_indiv.rds")
+xaxis= meta_indiv[,3]
+df = data.frame(xaxis)
+
+p =ggplot(df,aes(x = xaxis))+
+  geom_density(alpha = 0.5, fill = "#00BFC4")+xlab("Meta-cognitive ability")+ylab("Density")+
+    labs(title = "")+xlim(c(0.65,1.35))+ylim(c(0,5))+
+    theme_bw( ) + thsara
+ #plot(x, y, col = c("#F8766D", "#00BFC4", "#619CFF"))
+p
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/perf_percep_indiv_Placebo.png",p,width = 4,height = 4)
+```
+
+
+```{r}
+meta_indiv = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/data/M.Ratio_dependentgroups_gr_random_beforefit_samples_1to1000.rds")
+niter= 328
+wilall = c()
+for (iter in 1:niter){
+  wil = wilcox.test(meta_indiv[iter,1],meta_indiv[iter,2])
+  wilall[iter] = wil$statistic
+}
+
+wilemp = wilcox.test(mu1,mu3)
+wilemp$statistic
+
+
+randif = meta_indiv[1:niter,1]-meta_indiv[1:niter,2]
+empdif = mean(mu1)-mean(mu3)
+hist(randif)
+length(which(randif>empdif))/length(randif)
+```
+
+

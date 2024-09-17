@@ -1,0 +1,96 @@
+---
+title: "confhl_MB_edited"
+output: html_document
+---
+# Public version
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,warning = FALSE, message = FALSE, error = FALSE, comment="", fig.align = "center" ) 
+library(ggplot2)
+library(gridExtra)
+library(readr)
+library(tidyr)
+library(dplyr)
+library(cowplot)
+library(lme4)
+library(R.matlab)
+source("/Users/sershadmanesh/Nextcloud/Drug_study/Public/accessory/input_mixedreg_confonMB_accessor.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/Public/accessory/mixedreg_confonMB_accessor.R")
+```
+
+```{r}
+taskdrug = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/Public/Data/taskdrug2.rds")
+drug = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/Public/Data/drug.rds")
+```
+
+```{r,fig.width = 1,fig.height = 1}
+nsub= 30
+ndrug=3
+randeff = array(0, dim = c(ndrug,nsimu, nsub))
+rand = matrix(0, nrow=ndrug,ncol =nsub)
+
+for (dru in 1:ndrug){ # take care!!
+   
+C_MB=c()
+U_MB=c()
+Y_MB=c()
+SS_MB=c()
+CONFHL_MB=c()
+Drug = c()
+ for (sub in 1: nsub){
+    drugpos = drug[sub,dru] 
+    tasksub = taskdrug[which(taskdrug$subject==sub & taskdrug$day==drugpos), ] # subj for new 4 subjects!!!attention
+  
+    realized_reward= cbind(tasksub$reward.1, tasksub$reward.2, tasksub$reward.3, tasksub$reward.4)
+    reward_prob= cbind(tasksub$prob.1, tasksub$prob.2, tasksub$prob.3, tasksub$prob.4)
+    trials= cbind(tasksub$trials.1, tasksub$trials.2)
+    chosen = tasksub$choice
+    score = tasksub$score
+    confidence = tasksub$conf
+
+  ###preparing the input of mixed effect regression
+    retreg = input_mixedreg_confonMB_accessor(chosen,score,confidence,sub,realized_reward,reward_prob,trials)
+    
+    Y_MB=c(Y_MB,retreg[[1]])
+    C_MB=c(C_MB, retreg[[2]])
+    CONFHL_MB= c(CONFHL_MB, retreg[[3]])    
+    SS_MB=c(SS_MB, retreg[[4]])
+ } # sub
+  
+  ret = mixedreg_confonMB_accessor(Y_MB,C_MB,CONFHL_MB,SS_MB)
+  MB_tbl_with_conf= data.frame(Y_MB=ret[[1]], C_MB=ret[[2]], CONFHL_MB=ret[[3]],SS_MB=ret[[4]], N_MB=ret[[5]], prop= ret[[6]])
+
+  fitmix = glmer(Y_MB ~  C_MB*CONFHL_MB*Drug +(C_MB*CONFHL_MB*Drug|SS_MB), data = MB_tbl_with_conf, weights = N_MB, family= binomial)
+                
+  f = summary(fitmix)
+  randeff[dru,] =  f$coefficients[4,1] + ranef(fitmix)$SS_MB[,4]  # random effect + fixed effect
+} # dru
+#saveRDS(randeff,file="data/mixedreg_ConfonMB.rds")
+```
+
+
+```{r}
+nsub=30
+#coef=4
+subs = c(1:nsub)
+randcoef = c(rand[1,subs],rand[2,subs],rand[3,subs])
+drugna = c(rep("Prop",nsub),rep("Dop",nsub),rep("Plac",nsub))
+df = data.frame(randcoef ,drugna)
+df$drugna = factor(df$drug,levels = c("Prop","Dop","Plac"))
+  p =ggplot(df,aes(x = randcoef , fill  = drugna))+
+  geom_density(alpha = 0.5)+scale_fill_manual(values=c("red", "green","blue"))+xlab("Total effect")+ylab("Density")+
+    labs(title = "")+ xlim(c(-0.5,0.7))+# ylim(c(0,10))+
+    theme_bw( ) +
+      theme(axis.title.y = element_text(hjust = 0.5),
+            axis.line = element_line(colour = "black"),
+            panel.border = element_blank(),
+            panel.grid = element_blank(),
+            panel.background = element_blank(),
+            legend.position = "right",
+            legend.background=element_blank()
+      )
+  p
+
+```
+

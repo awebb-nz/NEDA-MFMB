@@ -1,0 +1,140 @@
+---
+title: "Conf_on_MB"
+output: html_document
+---
+
+We compared the influence on confidence on MB behavior in the next trial in three drug conditions, the analysis was done in Rani Moran's code at Matlab, in the below i just show the plots and statistical tests.
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,warning = FALSE, message = FALSE, error = FALSE, comment="", fig.align = "center" ) #,fig.width = 6,fig.height = 2
+#library(lme)
+library(ggplot2)
+library(gridExtra)
+library(readr)
+library(tidyr)
+library(dplyr)
+library(cowplot)
+library(firatheme)
+library(lme4)
+library(R.matlab)
+library(merTools)
+
+source("/Users/sershadmanesh/Nextcloud/Drug_study/Public/plot/compare_mbmf_reg_plot.R")
+
+```
+
+```{r}
+thsara =theme(axis.title.y = element_text(hjust = 0.5, size = 16),
+          axis.title.x = element_text(size = 16),
+          axis.text = element_text(size = 14),
+            axis.line = element_line(colour = "black"),
+            panel.border = element_blank(),
+            panel.grid = element_blank(),
+            panel.background = element_blank(),
+            legend.position = "right",
+            legend.background=element_blank()
+      )
+```
+
+```{r}
+confmb_pro = readMat("/Users/sershadmanesh/Nextcloud/Drug_study/Public/data/Data_in_matlab/tot_confMB_pro.mat")  # fixed+random, 30 subs
+confmb_dop = readMat("/Users/sershadmanesh/Nextcloud/Drug_study/Public/data/Data_in_matlab/tot_confMB_dop.mat")
+confmb_plac = readMat("/Users/sershadmanesh/Nextcloud/Drug_study/Public/data/Data_in_matlab/tot_confMB_plac.mat")
+confmbpro = confmb_pro$tot.effects.with.intercept
+confmbdop = confmb_dop$tot.effects.with.intercept
+confmbplac = confmb_plac$tot.effects.with.intercept
+confmbdrugs = list(confmbpro,confmbdop,confmbplac)
+```
+
+```{r}
+### Anova to compare Betas, influence of regressors, between drug conditions
+coef=4
+#25,26,28
+nsub=30
+subs = c(1:30)
+tot_2opt = c(confmbdrugs[[2]][coef,subs],confmbdrugs[[3]][coef,subs],confmbdrugs[[1]][coef,subs])
+drugname = c(rep("p", nsub), rep("d", nsub), rep("pl", nsub))
+meta = data.frame(tot_2opt,drugname = as.factor(drugname) )
+res = aov(tot_2opt~drugname , data = meta)
+cmbfval = summary(res)[[1]][[1,"F value"]]
+cmbpval = summary(res)[[1]][[1,"Pr(>F)"]]
+#kruskal.test(tot_2opt~drugname , data = meta) 
+```
+ 
+
+```{r}
+coef=4
+effectmf= data.frame(confmbdrugs[[1]][coef,],confmbdrugs[[3]][coef,],confmbdrugs[[2]][coef,])
+p1 = compare_mbmf_reg_plot(effectmf)
+p1
+```
+
+
+# Interaction of confidence and MF, Figure 3D
+
+```{r}
+#adress = "/Users/saraershadmanesh/Google Drive/Drugcode&data/Rani-anal/"
+
+confmf_pro = readMat("/Users/sershadmanesh/Nextcloud/Drug_study/data/Data_in_matlab/tot_confMF_pro.mat")  # fixed+random, 30 subs
+confmf_dop = readMat("/Users/sershadmanesh/Nextcloud/Drug_study/data/Data_in_matlab/tot_confMF_dop.mat")
+confmf_plac = readMat("/Users/sershadmanesh/Nextcloud/Drug_study/data/Data_in_matlab/tot_confMF_plac.mat")
+# confmb_pro = readMat("data/tot_confMB_prop_nonpull.mat")  # another method of optimization
+# confmb_dop = readMat("data/tot_confMB_dop_nonpull.mat")
+# confmb_plac = readMat("data/tot_confMB_plac_nonpull.mat") # normal p, is normal wiith Y_MB/N_MB
+confmfpro = confmf_pro$tot.effects.with.intercept
+confmfdop = confmf_dop$tot.effects.with.intercept
+confmfplac = confmf_plac$tot.effects.with.intercept
+confmfdrugs = list(confmfpro,confmfdop,confmfplac)
+```
+
+
+```{r}
+### Anova to compare Betas, influence of regressors, between drug conditions
+coef=4
+#25,26,28
+nsub=30
+subs = c(1:30)
+tot_2opt = c(confmfdrugs[[2]][coef,subs],confmfdrugs[[3]][coef,subs],confmfdrugs[[1]][coef,subs])
+drugname = c(rep("p", nsub), rep("d", nsub), rep("pl", nsub))
+meta = data.frame(tot_2opt,drugname = as.factor(drugname), subs )
+res = aov(tot_2opt~drugname +(drugname/subs) , data = meta)
+cmbfval = summary(res)[[1]][[1,"F value"]]
+cmbpval = summary(res)[[1]][[1,"Pr(>F)"]]
+#kruskal.test(tot_2opt~drugname , data = meta) 
+wilcox.test(confmbdrugs[[1]][coef,subs],confmbdrugs[[3]][coef,subs] )
+c(confmbdrugs[[1]][coef,subs],confmbdrugs[[3]][coef,subs] )
+```
+
+```{r}
+nsub=30
+coef=4
+subs = c(1:30)
+randcoef = c(confmfdrugs[[1]][coef,subs],confmfdrugs[[2]][coef,subs],confmfdrugs[[3]][coef,subs])
+drug = c(rep("Prop",nsub),rep("Dop",nsub),rep("Plac",nsub))
+df = data.frame(randcoef ,drug)
+df$drug = factor(df$drug,levels = c("Prop","Dop","Plac"))
+  p =ggplot(df,aes(x = randcoef , fill  = drug))+
+  geom_density(alpha = 0.5)+scale_fill_manual(values=c("red", "green","blue"))+xlab("Total effect")+ylab("Density")+
+    labs(title = "")+ xlim(c(-0.5,0.75))+
+    theme_bw( ) +
+      theme(axis.title.y = element_text(hjust = 0.5),
+            axis.line = element_line(colour = "black"),
+            panel.border = element_blank(),
+            panel.grid = element_blank(),
+            panel.background = element_blank(),
+            legend.position = "right",
+            legend.background=element_blank()
+      )
+p
+#ggsave("~/Desktop/confonMB.png",p,width = 9,height = 7,units = "cm")
+
+```
+```{r}
+coef=4
+effectmf= data.frame(confmfdrugs[[1]][coef,],confmfdrugs[[3]][coef,],confmfdrugs[[2]][coef,])
+p1 = compare_mbmf_reg_plot(effectmf)
+p2 = compare_mbmf_reg_twocol_plot(effectmf) 
+p1
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/CONFonMF_drugs.png",p1,width = 8,height = 8,units = "cm")
+ggsave("/Users/sershadmanesh/Nextcloud/Drug_study/images/CONFonMF_difplac_drugs.png",p2,width = 8,height = 8,units = "cm")
+```
+

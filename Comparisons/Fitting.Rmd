@@ -1,0 +1,149 @@
+---
+title: "Fitting"
+output: html_document
+---
+# Public version
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,warning = FALSE, message = FALSE, error = FALSE, comment="", fig.align = "center" ) #,fig.width = 6,fig.height = 2
+library(ggplot2)
+library(gridExtra)
+library(readr)
+library(tidyr)
+library(dplyr)
+library(gghalves)
+library(cowplot)
+library(lme4)
+library(R.matlab)
+library(DEoptim)
+```
+
+```{r}
+source("/Users/sershadmanesh/Nextcloud/Drug_study/Public/Accessory/linkfitreal.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/Public/Accessory/simufit.R")
+source("/Users/sershadmanesh/Nextcloud/Drug_study/Public/plot/compare_mbmf_reg_plot.R")
+```
+
+```{r}
+taskdrug = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/Public/data/taskdrug2.rds")
+drug = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/Pulic/data/drug.rds")
+```
+
+```{r}
+nsub = 30
+ndrug = 3
+nparam = 2
+niter = 100
+perfor = matrix(0,ndrug,nsub)
+alphafit = matrix(0,ndrug,nsub)
+wmbfit = matrix(0,ndrug,nsub)
+wmffit = matrix(0,ndrug,nsub)
+forgetfit = matrix(0,ndrug,nsub)
+prfit = matrix(0,ndrug,nsub)
+pzfit = matrix(0,ndrug,nsub)
+for (dru in 1:ndrug){
+ for (sub in 1:nsub){
+    drugpos = drug[sub,dru]
+    tasksub = taskdrug[which(taskdrug$subject==sub & taskdrug$day==drugpos), ]
+    rewwalk = cbind(tasksub$reward.1, tasksub$reward.2, tasksub$reward.3, tasksub$reward.4)
+    trials = cbind(tasksub$trials.1, tasksub$trials.2)
+    choicsub = tasksub$choice
+    datasub =cbind(rewwalk,trials,choicsub)
+    myseed <- 1234
+    set.seed(myseed)
+   # ctrl <- list( trace = FALSE, itermax = 20) #itermax = 1000,
+    
+    lower = c(0,0,0,0,0,-100)
+    upper = c(1,100,100,1,1,100)
+    sn = 10*length(lower)
+    
+    Npop = as.matrix(t(rbind(
+      runif(sn,0,1),
+      runif(sn,0,5),
+      runif(sn,0,5),
+      runif(sn,0,1),
+      runif(sn,0,1),
+      rnorm(sn,0,1)
+      )))
+    
+    optimize =  DEoptim(
+      lower = lower, 
+      upper = upper, 
+      fn = linkfitreal, 
+      datasub = datasub,
+      control = DEoptim.control(trace = FALSE, itermax = niter, initialpop=Npop)
+    )
+    
+    
+    perfor[dru,sub] = optimize$optim$bestval
+    alphafit[dru,sub] = optimize$optim$bestmem[1]
+    wmbfit[dru,sub] = optimize$optim$bestmem[1]
+    wmffit[dru,sub] = optimize$optim$bestmem[2]
+    forgetfit[dru,sub] = optimize$optim$bestmem[4]
+    prfit[dru,sub] = optimize$optim$bestmem[5]
+    pzfit[dru,sub] = optimize$optim$bestmem[6]
+ }
+}
+
+fit_param =list(perfor,alphafit,wmbfit,wmffit,forgetfit,prfit,pzfit)
+#saveRDS(fit_param, file = "/Users/sershadmanesh/Nextcloud/Drug_study/Public/data/fit_6param_30sub_100iter.rds") the correct one, match with Peter and Rani
+
+```
+
+# Compare the parameters in three conditions, plots
+
+```{r,fig.width = 5,fig.height = 2}
+par_choice = readRDS("/Users/sershadmanesh/Nextcloud/Drug_study/Public/data/fit_6param_30sub_100iter.rds")
+npar = 7 # 6 + bestfit
+prow <- plot_grid(
+  compare_mbmf_reg_plot(data.frame(par_choice[[1]][1,], par_choice[[1]][3,], par_choice[[1]][2,])),
+  compare_mbmf_reg_plot(data.frame(par_choice[[2]][1,], par_choice[[2]][3,], par_choice[[2]][2,])),
+  compare_mbmf_reg_plot(data.frame(par_choice[[3]][1,], par_choice[[3]][3,], par_choice[[3]][2,])),
+  compare_mbmf_reg_plot(data.frame(par_choice[[4]][1,], par_choice[[4]][3,], par_choice[[4]][2,])),
+  compare_mbmf_reg_plot(data.frame(par_choice[[5]][1,], par_choice[[5]][3,], par_choice[[5]][2,])),
+  compare_mbmf_reg_plot(data.frame(par_choice[[6]][1,], par_choice[[6]][3,], par_choice[[6]][2,])),
+  compare_mbmf_reg_plot(data.frame(par_choice[[7]][1,], par_choice[[7]][3,], par_choice[[7]][2,])),
+  hjust = -1,
+  nrow = 2
+)
+prow
+```
+
+# Compare the parameters in three conditions, statistics (Anova,permutation)
+
+```{r}
+nsub=30
+subject = rep(c(1:nsub),6)
+#drg = c(rep(1,nsub), rep(2,nsub))
+dru1=1
+dru2=2
+dru3=3
+
+prop = c(rep(1,nsub),rep(0,2*nsub),rep(1,nsub),rep(0,2*nsub))
+dop = c(rep(0,nsub),rep(1,nsub),rep(0,nsub),rep(0,nsub),rep(1,nsub),rep(0,nsub))
+plac = c(rep(0,2*nsub),rep(1,nsub),rep(0,2*nsub),rep(1,nsub))
+subj = rep(c(1:30),6)
+mb = c(rep(1,3*nsub),rep(0,3*nsub))
+#mf = c(rep(0,3*nsub),rep(1,3*nsub))
+intact= mb*prop
+intact= factor(intact)
+w = c(wmb[dru1,],wmb[dru2,],wmb[dru3,],wmf[dru1,],wmf[dru2,],wmf[dru3,])
+tapply(w, intact, mean)
+paramdata = data.frame( w = w, mb = mb, prop = prop,dop=dop, intact=intact,subj=subj)
+ano1 = aov(w~mb*prop*dop+(1|subj) , data = paramdata)
+#lm1 = lmer(w~mb*prop*dop + (1|subj) , data = paramdata) #+(mb*prop*dop|subj)
+#summary(lm1)
+summary(ano1)
+#TukeyHSD(ano1, "intact")
+
+tot_2opt = c(fit_param[[1]][1,],fit_param[[1]][2,],fit_param[[1]][3,])#,confdrugs[[3]][coef,])
+drugname = c(rep("p", 30), rep("d", 30), rep("pl", 30))
+meta = data.frame(tot_2opt,drugname = as.factor(drugname) )
+aov(tot_2opt~drugname , data = meta) %>% summary() 
+kruskal.test(tot_2opt~drugname , data = meta)
+
+
+
+```
+
+

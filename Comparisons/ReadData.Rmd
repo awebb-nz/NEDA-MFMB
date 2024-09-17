@@ -1,0 +1,53 @@
+---
+title: "ReadData"
+output: html_document
+---
+
+```{r}
+nTrials=5*60
+nsub=30
+datadrug = "/Users/sershadmanesh/Nextcloud/Drug_study/Public/data/main_data/complete"
+adressdrug = list.files(paste0(datadrug),full.names = T) %>% paste0(.,"/main/","_1.mat") # %>% paste0(.)
+
+completesubs = c(102:112, 114:117, 119:133)  
+taskdrug = list()
+for(sub in 1:length(adressdrug)){
+  subid = completesubs[sub]
+  subject= rep(sub,nTrials)
+  for (day in 1:3){  # 3 days of experiment
+  data = readMat(paste0(datadrug,"/",subid,"/main/",subid,"_",day,".mat"))
+  .data= data.frame(subject= rep(sub,nTrials),
+                    days= rep(day, nTrials),
+                    prob = data$Subject[,,1]$reward.prob,
+                    reward = data$Subject[,,1]$realized.reward,
+                    trials = data$Subject[,,1]$Trials,
+                    choice = as.vector(data$chosen),
+                    Rtime = as.vector(data$RT),
+                    RTconf = as.vector(data$RTconf),
+                    conf = as.vector(data$conf),
+                    score = as.vector(data$score),
+                    brierscore = as.vector(data$brier.score),
+                    stringsAsFactors = F)
+  num = (sub-1)*3+day
+  taskdrug[[num]] = .data
+  } 
+}
+
+taskdrug = data.table::rbindlist(taskdrug)
+taskdrug = taskdrug[which(taskdrug$choice!=-1 & taskdrug$choice!=-2 ),]
+
+
+pro =  c(1,2, 3,2,3,1,1, 2,3,2,3, 1,2,3, 2,1 ,1,2,3,2,3,1,1,2,3,2,3,1,1,2)
+dop =  c(3,1, 1,3,2,2,3, 1,1,3,2, 3,1,1, 3,2 ,3,1,1,3,2,2,3,1,1,3,2,2,3,1)
+plac = c(2,3, 2,1,1,3,2, 3,2,1,1, 2,3,2, 1,3 ,2,3,2,1,1,3,2,3,2,1,1,3,2,3)
+drug = data.frame(pro,dop,plac)
+
+
+#saveRDS(taskdrug,file="/Users/sershadmanesh/Nextcloud/Drug_study/Public/data/taskdrug.rds")
+#saveRDS(drug,file="/Users/sershadmanesh/Nextcloud/Drug_study/Public/data/drug.rds")
+```
+
+
+
+
+
