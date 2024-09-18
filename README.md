@@ -1,4 +1,4 @@
-Hello
+Code Guidence:
 
 Fig 2.  A& B& C
 In “Comparison” file,  at the file “Hmeta_drugs.Rmd”. These codes call the functions from “HMeta-d-master-Fleming,S/R”
