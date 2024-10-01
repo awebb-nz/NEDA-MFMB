@@ -58,24 +58,28 @@ load "NEDA-MFMB.Rproj"
 
 -   To view the Two-outcome task data in a data frame format, run the ReadData.Rmd script. This script also generates the drug data frame, with column descriptions provided within the file. Additionally, it establishes the association between drug conditions and the days of the experiment for all subjects. The output is saved in the data directory and is utilized in subsequent analyses.
 
+- All the required packages would be installed on your system by running the required "Rmd" files, the code "source("libs/Librarries.R")" plays this role.
+
 -   To produce plots:
 
-    1- Fig 2. A & B & C In "Comparison" file, at the file
+    1- Fig 2. A & B & C. At the file
     "Hmeta_drugs.Rmd". These codes call the functions from "HMeta/R"
 
-    2- Fig 3. A & F & C & G In "Comparison" file, at the file
+    2- Fig 3. A & F & C & G. At the file
     "MBMF_contribution.Rmd", there are codes for visualization and
     statistics on the regression results. The regression analysis was
     done with Matlab codes, written by "Rani Moran", in the
     "Matlab-codes/MBMF_contributions_regression.m".
 
-    3- Fig 3. D & H In "Comparison" file, at the file "Conf_MFMB.Rmd",
+    3- Fig 3. D & H. At the file "Conf_MFMB.Rmd",
     there are codes for visualization and statistics on the regression
     results. The regression analysis was done with Matlab codes, written
     by "Rani Moran", in the "Matlab-codes/Conf_MFMB_regression.m".
 
 
-- In the "Comparison" folder, the Fitting.Rmd script fits the data to the hybrid model and compares the parameters across three drug conditions using visualizations and statistical tests. The fitting procedure is based on the fit/linkfitreal.R and simu/simufit.R scripts.
+- The "Fitting.Rmd"" script fits the data to the hybrid model and compares the parameters across three drug conditions using visualizations and statistical tests. The fitting procedure is based on the "fit/linkfitreal.R" and "simu/simufit.R"" scripts.
+
+
 
 ## Citation
 

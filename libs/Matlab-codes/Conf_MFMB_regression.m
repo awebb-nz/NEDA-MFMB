@@ -21,7 +21,7 @@ SS_MB=[];
 P_MB= [];
 CONFHL_MB=[];
 Drug_MB =[];
-drug = load('drug_4Rani_30.mat'); % the days which subjects used different drugs
+drug = load('data/Data_in_matlab/drug_4Rani_30.mat'); % the days which subjects used different drugs
 daydrug = drug.drug.pro; 
 drugpos = 1;
 subjects = [102:112, 114:117, 119:133]; % 30 subjects
@@ -39,7 +39,7 @@ ndrg= 3;
 for ss = 1: nsubs
     day = daydrug(ss); 
     sss = subjects(ss);
-    load(['/Users/sershadmanesh/Nextcloud/Drug_study/data/main_data/complete/',...
+    load(['data/main_data/complete/',...
          int2str(sss),'/main/', int2str(sss),'_', int2str(day),'.mat'])
     outcome= Subject.outcome_mat;
     score = score(:);

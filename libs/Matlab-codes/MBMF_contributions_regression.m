@@ -26,7 +26,7 @@ P_MB= [];
 CONFHL_MB=[];
 Drug = [];
 confdetect = zeros(1,nsubs);
-drug = load('/Users/sershadmanesh/Nextcloud/Drug_study/Public/data/Data_in_matlab/drug_day_30.mat'); % the days which subjects used different drugs
+drug = load('data/Data_in_matlab/drug_day_30.mat'); % the days which subjects used different drugs
 %daydrug = drug.drug.pro;  % change the drug
 drug_cell = struct2cell(drug.drug);
 for dru = 1:ndrug
@@ -39,7 +39,7 @@ for ss = 1: nsubs
     %day = dop(ss); 
     sss = subjects(ss);
         
-    load(['/Users/sershadmanesh/Nextcloud/Drug_study/data/complete/',...
+    load(['data/complete/',...
          int2str(sss),'/main/', int2str(sss),'_', int2str(day),'.mat'])
  
     outcome= Subject.outcome_mat;
