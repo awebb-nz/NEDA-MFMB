@@ -87,7 +87,7 @@ meta-control. Plos Computational Biology.
 ## Contact
 
 For any questions or comments, please contact us at
-[sara.ershadmanesh\@tuebingen.mpg.de](mailto:sara.ershadmanesh@tuebingen.mpg.de){.email}
+[sara.ershadmanesh\@tuebingen.mpg.de](mailto:sara.ershadmanesh@tuebingen.mpg.de)
 
 
 
