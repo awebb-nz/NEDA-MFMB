@@ -24,9 +24,9 @@ metacontrol are themselves subject to the influence of neuromodulators,
 we examined the effects of perturbing the noradrenergic and dopaminergic
 systems with propranolol and L-DOPA, respectively. We first administered
 a simple perceptual task to examine the effects of the manipulations on
-meta-cognitive ability. Using Bayesian analyses, we found that 81% of
+meta-cognitive ability. Using Bayesian analyses, we found that 81 percentage of
 group M-ratio samples were lower under propranolol relative to Placebo,
-suggesting a decrease of meta-cognitive ability; and 60% of group
+suggesting a decrease of meta-cognitive ability; and 60 percentage of group
 M-ratio samples were higher under L-DOPA relative to Placebo, considered
 as no effect of L-DOPA on meta-cognitive ability . We then asked
 subjects to provide choices and confidence ratings in a two-outcome
