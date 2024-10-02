@@ -1,10 +1,3 @@
-<<<<<<< HEAD
----
-editor_options: 
-  markdown: 
-    wrap: 72
----
-
 # Noradrenergic and Dopaminergic modulation of meta-cognition and meta-control
 
 This repository contains code and data for Noradrenergic and
