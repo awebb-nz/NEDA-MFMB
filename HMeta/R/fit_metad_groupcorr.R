@@ -115,7 +115,7 @@ fit_metad_groupcorr <- function (nR_S1, nR_S2) {
     
     ## Model using JAGS
     # Create and update model
-    cor_model <- jags.model(file = 'Bayes_metad_group_corr2_R.txt', data = data,
+    cor_model <- jags.model(file = "HMeta/R/Bayes_metad_group_corr2_R.txt", data = data,
                             n.chains = 3, quiet=FALSE)
     update(cor_model, n.iter=1000)
     
@@ -204,7 +204,7 @@ fit_metad_groupcorr <- function (nR_S1, nR_S2) {
       
       ## Model using JAGS
       # Create and update model
-      cor_model <- jags.model(file = 'Bayes_metad_group_corr3_R.txt', data = data,
+      cor_model <- jags.model(file = 'HMeta/R/Bayes_metad_group_corr3_R.txt', data = data,
                               n.chains = 3, quiet=FALSE)
       update(cor_model, n.iter=1000)
       
@@ -300,7 +300,7 @@ fit_metad_groupcorr <- function (nR_S1, nR_S2) {
     
     ## Model using JAGS
     # Create and update model
-    cor_model <- jags.model(file = 'Bayes_metad_group_corr4_R.txt', data = data,
+    cor_model <- jags.model(file = 'HMeta/R/Bayes_metad_group_corr4_R.txt', data = data,
                             n.chains = 3, quiet=FALSE)
     update(cor_model, n.iter=1000)
     

@@ -4,6 +4,7 @@
 #                                                          #
 ##%######################################################%##
 
+if(!("stringi" %in% installed.packages())) install.packages("stringi")
 if(!("tidyverse" %in% installed.packages())) install.packages("tidyverse")
 if(!("gghalves" %in% installed.packages())) install.packages("gghalves")
 if(!("lme4" %in% installed.packages())) install.packages("lme4")

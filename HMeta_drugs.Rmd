@@ -23,7 +23,7 @@ nblk = 8
 nRatings = 6
 nrat= 2*6 # we have 2 response for choice
 drug = readRDS("data/drug.rds") # order of drug days for each subject
-adressdrug = "data/main_data/complete/" # data from perceptual tasks
+adressdrug = "data/complete/" # data from perceptual tasks
 completesubs = c(102:112, 114:117, 119:133) 
 
 nrg_s1 = list()
@@ -135,7 +135,7 @@ for (sub in 1:nsub){
 }
 # saveRDS(ratio_dif_indiv, file ="/Users/sershadmanesh/Nextcloud/Drug_study/Public/data/mu_deltaM.Ratio_dependentgroups_indiv.rds")
 
-cor.test( ratio_dif_indiv[,1], ratio_dif_indiv[,2])
+cor.test( ratio_dif_indiv[,,1], ratio_dif_indiv[,,2])
 
 length(which(mu1-mu3<0))/length(mu1-mu3)
 length(which(mu2-mu3>0))/length(mu2-mu3)
@@ -187,7 +187,7 @@ perf = matrix(0, nrow = ndrug, ncol=nsub) # two is for storring mean and se
 rt = matrix(0, nrow = ndrug, ncol=nsub) # two is for storring mean and se
 conf = matrix(0, nrow = ndrug, ncol=nsub) # two is for storring mean and se
 drug = readRDS("data/drug.rds")
-adressdrug = "data/main_data/complete/"
+adressdrug = "data/complete/"
 completesubs = c(102:112, 114:117, 119:133)  # 4 last added
 
 for (dru in 1:ndrug){
