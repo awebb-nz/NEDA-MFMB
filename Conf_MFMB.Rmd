@@ -5,43 +5,42 @@ output: html_document
 
 We compared the influence on confidence on MB behavior in the next trial in three drug conditions, the analysis was done in Rani Moran's code at Matlab, in the below i just show the plots and statistical tests.
 ```{r setup, include=FALSE}
-source("libs/Librarries.R") 
+source("libs/Librarries.R")
 source("libs/plot/compare_mbmf_reg_plot.R")
-source("libs/plot/mytheme.R")# just for better visualization of plots
-
+source("libs/plot/mytheme.R") # just for better visualization of plots
 ```
 
 
 ```{r}
-confmb_pro = readMat("data/Data_in_matlab/tot_confMB_pro.mat")  # fixed+random, 30 subs
-confmb_dop = readMat("data/Data_in_matlab/tot_confMB_dop.mat")
-confmb_plac = readMat("data/Data_in_matlab/tot_confMB_plac.mat")
-confmbpro = confmb_pro$tot.effects.with.intercept
-confmbdop = confmb_dop$tot.effects.with.intercept
-confmbplac = confmb_plac$tot.effects.with.intercept
-confmbdrugs = list(confmbpro,confmbdop,confmbplac)
+confmb_pro <- readMat("data/Data_in_matlab/tot_confMB_pro.mat") # fixed+random, 30 subs
+confmb_dop <- readMat("data/Data_in_matlab/tot_confMB_dop.mat")
+confmb_plac <- readMat("data/Data_in_matlab/tot_confMB_plac.mat")
+confmbpro <- confmb_pro$tot.effects.with.intercept
+confmbdop <- confmb_dop$tot.effects.with.intercept
+confmbplac <- confmb_plac$tot.effects.with.intercept
+confmbdrugs <- list(confmbpro, confmbdop, confmbplac)
 ```
 
 ```{r}
 ### Anova to compare Betas, influence of regressors, between drug conditions
-coef=4
-#25,26,28
-nsub=30
-subs = c(1:30)
-tot_2opt = c(confmbdrugs[[2]][coef,subs],confmbdrugs[[3]][coef,subs],confmbdrugs[[1]][coef,subs])
-drugname = c(rep("p", nsub), rep("d", nsub), rep("pl", nsub))
-meta = data.frame(tot_2opt,drugname = as.factor(drugname) )
-res = aov(tot_2opt~drugname , data = meta)
-cmbfval = summary(res)[[1]][[1,"F value"]]
-cmbpval = summary(res)[[1]][[1,"Pr(>F)"]]
-#kruskal.test(tot_2opt~drugname , data = meta) 
+coef <- 4
+# 25,26,28
+nsub <- 30
+subs <- c(1:30)
+tot_2opt <- c(confmbdrugs[[2]][coef, subs], confmbdrugs[[3]][coef, subs], confmbdrugs[[1]][coef, subs])
+drugname <- c(rep("p", nsub), rep("d", nsub), rep("pl", nsub))
+meta <- data.frame(tot_2opt, drugname = as.factor(drugname))
+res <- aov(tot_2opt ~ drugname, data = meta)
+cmbfval <- summary(res)[[1]][[1, "F value"]]
+cmbpval <- summary(res)[[1]][[1, "Pr(>F)"]]
+# kruskal.test(tot_2opt~drugname , data = meta)
 ```
  
 
 ```{r}
-coef=4
-effectmf= data.frame(confmbdrugs[[1]][coef,],confmbdrugs[[3]][coef,],confmbdrugs[[2]][coef,])
-p1 = compare_mbmf_reg_plot(effectmf)
+coef <- 4
+effectmf <- data.frame(confmbdrugs[[1]][coef, ], confmbdrugs[[3]][coef, ], confmbdrugs[[2]][coef, ])
+p1 <- compare_mbmf_reg_plot(effectmf)
 p1
 ```
 
@@ -49,38 +48,37 @@ p1
 # Interaction of confidence and MF, Figure 3D
 
 ```{r}
-confmf_pro = readMat("data/Data_in_matlab/tot_confMF_pro.mat")  # fixed+random, 30 subs
-confmf_dop = readMat("data/Data_in_matlab/tot_confMF_dop.mat")
-confmf_plac = readMat("data/Data_in_matlab/tot_confMF_plac.mat")
-confmfpro = confmf_pro$tot.effects.with.intercept
-confmfdop = confmf_dop$tot.effects.with.intercept
-confmfplac = confmf_plac$tot.effects.with.intercept
-confmfdrugs = list(confmfpro,confmfdop,confmfplac)
+confmf_pro <- readMat("data/Data_in_matlab/tot_confMF_pro.mat") # fixed+random, 30 subs
+confmf_dop <- readMat("data/Data_in_matlab/tot_confMF_dop.mat")
+confmf_plac <- readMat("data/Data_in_matlab/tot_confMF_plac.mat")
+confmfpro <- confmf_pro$tot.effects.with.intercept
+confmfdop <- confmf_dop$tot.effects.with.intercept
+confmfplac <- confmf_plac$tot.effects.with.intercept
+confmfdrugs <- list(confmfpro, confmfdop, confmfplac)
 ```
 
 
 ```{r}
 ### Anova to compare Betas, influence of regressors, between drug conditions
-coef=4
-#25,26,28
-nsub=30
-subs = c(1:30)
-tot_2opt = c(confmfdrugs[[2]][coef,subs],confmfdrugs[[3]][coef,subs],confmfdrugs[[1]][coef,subs])
-drugname = c(rep("p", nsub), rep("d", nsub), rep("pl", nsub))
-meta = data.frame(tot_2opt,drugname = as.factor(drugname), subs )
-res = aov(tot_2opt~drugname +(drugname/subs) , data = meta)
-cmbfval = summary(res)[[1]][[1,"F value"]]
-cmbpval = summary(res)[[1]][[1,"Pr(>F)"]]
-#kruskal.test(tot_2opt~drugname , data = meta) 
-wilcox.test(confmbdrugs[[1]][coef,subs],confmbdrugs[[3]][coef,subs] )
-
+coef <- 4
+# 25,26,28
+nsub <- 30
+subs <- c(1:30)
+tot_2opt <- c(confmfdrugs[[2]][coef, subs], confmfdrugs[[3]][coef, subs], confmfdrugs[[1]][coef, subs])
+drugname <- c(rep("p", nsub), rep("d", nsub), rep("pl", nsub))
+meta <- data.frame(tot_2opt, drugname = as.factor(drugname), subs)
+res <- aov(tot_2opt ~ drugname + (drugname / subs), data = meta)
+cmbfval <- summary(res)[[1]][[1, "F value"]]
+cmbpval <- summary(res)[[1]][[1, "Pr(>F)"]]
+# kruskal.test(tot_2opt~drugname , data = meta)
+wilcox.test(confmbdrugs[[1]][coef, subs], confmbdrugs[[3]][coef, subs])
 ```
 
 
 ```{r}
-coef=4
-effectmf= data.frame(confmfdrugs[[1]][coef,],confmfdrugs[[3]][coef,],confmfdrugs[[2]][coef,])
-p1 = compare_mbmf_reg_plot(effectmf)
+coef <- 4
+effectmf <- data.frame(confmfdrugs[[1]][coef, ], confmfdrugs[[3]][coef, ], confmfdrugs[[2]][coef, ])
+p1 <- compare_mbmf_reg_plot(effectmf)
 p1
 ```
 
