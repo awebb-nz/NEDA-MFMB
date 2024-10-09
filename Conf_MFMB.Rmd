@@ -74,6 +74,7 @@ cmbpval <- summary(res)[[1]][[1, "Pr(>F)"]]
 print(paste0("F: ", cmbfval, " P: ", cmbpval))
 # kruskal.test(tot_2opt~drugname , data = meta)
 wilcox.test(confmbdrugs[[1]][coef, subs], confmbdrugs[[3]][coef, subs])
+wilcox.test(confmbdrugs[[2]][coef, subs], confmbdrugs[[3]][coef, subs])
 ```
 
 

@@ -10,7 +10,7 @@ compare_mbmf_reg_plot <- function(effect) {
   drugname <- c(rep(1, nsub), rep(2, nsub), rep(3, nsub))
   df <- data.frame(effectall, subname, drugname) %>%
     mutate(
-      drugname = factor(drugname, levels = c("1", "2", "3"), ordered = T)
+      drugname = factor(drugname, levels = c("1", "2", "3"), ordered = TRUE)
     )
 
   # plot(x, y, col = c("#F8766D", "#00BFC4", "#619CFF"))
@@ -36,17 +36,23 @@ compare_mbmf_reg_plot <- function(effect) {
     geom_line(aes(group = subname), size = 0.1, color = "gray") +
     stat_summary(
       data = subset(df, drugname == "1"), aes(x = drugname, y = effectall),
-      geom = "point", shape = 23, color = "red", fill = "red", size = 1.5, alpha = 0.6
+      geom = "point", shape = 23, color = "red",
+      fill = "red", size = 1.5, alpha = 0.6
     ) +
     stat_summary(
       data = subset(df, drugname == "2"), aes(x = drugname, y = effectall),
-      geom = "point", shape = 23, color = "red", fill = "red", size = 1.5, alpha = 0.6
+      geom = "point", shape = 23, color = "red",
+      fill = "red", size = 1.5, alpha = 0.6
     ) +
     stat_summary(
       data = subset(df, drugname == "3"), aes(x = drugname, y = effectall),
-      geom = "point", shape = 23, color = "red", fill = "red", size = 1.5, alpha = 0.6
+      geom = "point", shape = 23, color = "red",
+      fill = "red", size = 1.5, alpha = 0.6
     ) +
-    scale_x_discrete(breaks = c("1", "2", "3"), labels = c("Propranolol", "Placebo", "Dopamine")) +
+    scale_x_discrete(
+      breaks = c("1", "2", "3"),
+      labels = c("Propranolol", "Placebo", "Dopamine")
+    ) +
     labs(x = NULL, y = NULL) +
     theme_bw() +
     theme(
