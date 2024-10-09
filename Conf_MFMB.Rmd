@@ -33,6 +33,7 @@ meta <- data.frame(tot_2opt, drugname = as.factor(drugname))
 res <- aov(tot_2opt ~ drugname, data = meta)
 cmbfval <- summary(res)[[1]][[1, "F value"]]
 cmbpval <- summary(res)[[1]][[1, "Pr(>F)"]]
+print(paste0("F: ", cmbfval, " P: ", cmbpval))
 # kruskal.test(tot_2opt~drugname , data = meta)
 ```
  
@@ -70,6 +71,7 @@ meta <- data.frame(tot_2opt, drugname = as.factor(drugname), subs)
 res <- aov(tot_2opt ~ drugname + (drugname / subs), data = meta)
 cmbfval <- summary(res)[[1]][[1, "F value"]]
 cmbpval <- summary(res)[[1]][[1, "Pr(>F)"]]
+print(paste0("F: ", cmbfval, " P: ", cmbpval))
 # kruskal.test(tot_2opt~drugname , data = meta)
 wilcox.test(confmbdrugs[[1]][coef, subs], confmbdrugs[[3]][coef, subs])
 ```
