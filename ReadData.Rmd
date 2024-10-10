@@ -4,55 +4,55 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-source("libs/Librarries.R") 
+source("libs/Librarries.R")
 ```
 
 ```{r}
-nTrials=5*60
-nsub=30
-datadrug = "data/complete"
-adressdrug = list.files(paste0(datadrug),full.names = T) %>% paste0(.,"/main/","_1.mat") # %>% paste0(.)
-completesubs = c(102:112, 114:117, 119:133)  
-taskdrug = list()
-for(sub in 15:20){ #length(adressdrug)
-  subid = completesubs[sub]
-  subject= rep(sub,nTrials)
-  for (day in 1:3){  # 3 days of experiment
-  data = readMat(paste0(datadrug,"/",subid,"/main/",subid,"_",day,".mat"))
-  .data= data.frame(subject= rep(sub,nTrials),  # transformed ID of subjects, 1 to 30
-                    days= rep(day, nTrials), # day of experiment
-                    prob = data$Subject[,,1]$reward.prob, # probability of reward for 4 vegetables in Two-outcome task
-                    reward = data$Subject[,,1]$realized.reward, # reward for each of 4 vegetables in Two-outcome task
-                    trials = data$Subject[,,1]$Trials, # number of trial
-                    choice = as.vector(data$chosen),  # choice of subject from 1 to 4 (subject encounters 2 of them in each trial)
-                    Rtime = as.vector(data$RT), # Reaction time for choice
-                    RTconf = as.vector(data$RTconf), # Reaction time for confidence
-                    conf = as.vector(data$conf),   # confidence in choice
-                    score = as.vector(data$score),  # sum of the scores from both observed vegetables
-                    brierscore = as.vector(data$brier.score), # it would infleunce the money that subjects achieved at last, meta-cognitive sensitivity
-                    stringsAsFactors = F)
-  num = (sub-1)*3+day
-  taskdrug[[num]] = .data
-  } 
+nTrials <- 5 * 60
+nsub <- 30
+datadrug <- "data/complete"
+adressdrug <- list.files(paste0(datadrug), full.names = T) %>% paste0(., "/main/", "_1.mat") # %>% paste0(.)
+completesubs <- c(102:112, 114:117, 119:133)
+taskdrug <- list()
+for (sub in 15:20) { # length(adressdrug)
+  subid <- completesubs[sub]
+  subject <- rep(sub, nTrials)
+  for (day in 1:3) { # 3 days of experiment
+    data <- readMat(paste0(datadrug, "/", subid, "/main/", subid, "_", day, ".mat"))
+    .data <- data.frame(
+      subject = rep(sub, nTrials), # transformed ID of subjects, 1 to 30
+      days = rep(day, nTrials), # day of experiment
+      prob = data$Subject[, , 1]$reward.prob, # probability of reward for 4 vegetables in Two-outcome task
+      reward = data$Subject[, , 1]$realized.reward, # reward for each of 4 vegetables in Two-outcome task
+      trials = data$Subject[, , 1]$Trials, # number of trial
+      choice = as.vector(data$chosen), # choice of subject from 1 to 4 (subject encounters 2 of them in each trial)
+      Rtime = as.vector(data$RT), # Reaction time for choice
+      RTconf = as.vector(data$RTconf), # Reaction time for confidence
+      conf = as.vector(data$conf), # confidence in choice
+      score = as.vector(data$score), # sum of the scores from both observed vegetables
+      brierscore = as.vector(data$brier.score), # it would infleunce the money that subjects achieved at last, meta-cognitive sensitivity
+      stringsAsFactors = F
+    )
+    num <- (sub - 1) * 3 + day
+    taskdrug[[num]] <- .data
+  }
 }
 
-taskdrug = data.table::rbindlist(taskdrug)
-#The trials which subject did not respond or did not report confidence were deleted, 
-#as they happened rarely.
-taskdrug = taskdrug[which(taskdrug$choice!=-1 & taskdrug$choice!=-2 ),]
+taskdrug <- data.table::rbindlist(taskdrug)
+# The trials which subject did not respond or did not report confidence were deleted,
+# as they happened rarely.
+taskdrug <- taskdrug[which(taskdrug$choice != -1 & taskdrug$choice != -2), ]
 
 
 # The day each drug was instructed for each subject. Forexample, the first element of all these below vectors are about subject 1 (102), she/he used propranolol(pro) at day 1, Dopamin (dop) at day 2 and placebo (plac) at day 3
-pro =  c(1,2, 3,2,3,1,1, 2,3,2,3, 1,2,3, 2,1 ,1,2,3,2,3,1,1,2,3,2,3,1,1,2)
-dop =  c(3,1, 1,3,2,2,3, 1,1,3,2, 3,1,1, 3,2 ,3,1,1,3,2,2,3,1,1,3,2,2,3,1)
-plac = c(2,3, 2,1,1,3,2, 3,2,1,1, 2,3,2, 1,3 ,2,3,2,1,1,3,2,3,2,1,1,3,2,3)
-drug = data.frame(pro,dop,plac)
+pro <- c(1, 2, 3, 2, 3, 1, 1, 2, 3, 2, 3, 1, 2, 3, 2, 1, 1, 2, 3, 2, 3, 1, 1, 2, 3, 2, 3, 1, 1, 2)
+dop <- c(3, 1, 1, 3, 2, 2, 3, 1, 1, 3, 2, 3, 1, 1, 3, 2, 3, 1, 1, 3, 2, 2, 3, 1, 1, 3, 2, 2, 3, 1)
+plac <- c(2, 3, 2, 1, 1, 3, 2, 3, 2, 1, 1, 2, 3, 2, 1, 3, 2, 3, 2, 1, 1, 3, 2, 3, 2, 1, 1, 3, 2, 3)
+drug <- data.frame(pro, dop, plac)
 
 
-#saveRDS(taskdrug,file="data/taskdrug.rds")
-#saveRDS(drug,file="data/drug.rds")
-
-
+# saveRDS(taskdrug,file="data/taskdrug.rds")
+# saveRDS(drug,file="data/drug.rds")
 ```
 
 
